@@ -1,0 +1,6 @@
+{"id":"negation-1","domain":"biomedical","premise":"Aspirin may increase the risk of gastrointestinal bleeding.","hypothesis":"Aspirin does not increase gastrointestinal bleeding risk.","label":"contradiction","attack":"negation"}
+{"id":"numeric-1","domain":"general","premise":"The programme served 1,250 students in 2024.","hypothesis":"The programme served 1,520 students in 2024.","label":"contradiction","attack":"number_substitution"}
+{"id":"temporal-1","domain":"biomedical","premise":"Symptoms improved after twelve weeks of treatment.","hypothesis":"Symptoms improved before treatment began.","label":"contradiction","attack":"temporal_reversal"}
+{"id":"entity-1","domain":"biomedical","premise":"BRCA1 variants are associated with elevated breast cancer risk.","hypothesis":"APOE variants are associated with elevated breast cancer risk.","label":"neutral","attack":"entity_substitution"}
+{"id":"entailed-1","domain":"general","premise":"The Eiffel Tower is located in Paris, France.","hypothesis":"The Eiffel Tower is in Paris.","label":"entailment","attack":"none"}
+
