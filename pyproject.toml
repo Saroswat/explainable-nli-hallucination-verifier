@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "verinli"
+version = "0.1.0"
+description = "Explainable NLI pipeline for evidence-grounded hallucination verification"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [{name = "Saroswat Roy"}]
+dependencies = ["pydantic>=2.7", "typer>=0.12"]
+
+[project.optional-dependencies]
+api = ["fastapi>=0.111", "uvicorn>=0.30"]
+ml = ["transformers>=4.44", "torch>=2.2", "sentence-transformers>=3.0"]
+dev = ["pytest>=8.2", "pytest-cov>=5", "ruff>=0.5", "mypy>=1.10"]
+
+[project.scripts]
+verinli = "verinli.cli:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/verinli"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --cov=verinli --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["verinli"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = "verinli.api"
+disallow_untyped_decorators = false
