@@ -3,4 +3,11 @@
 {"id":"temporal-1","domain":"biomedical","premise":"Symptoms improved after twelve weeks of treatment.","hypothesis":"Symptoms improved before treatment began.","label":"contradiction","attack":"temporal_reversal"}
 {"id":"entity-1","domain":"biomedical","premise":"BRCA1 variants are associated with elevated breast cancer risk.","hypothesis":"APOE variants are associated with elevated breast cancer risk.","label":"neutral","attack":"entity_substitution"}
 {"id":"entailed-1","domain":"general","premise":"The Eiffel Tower is located in Paris, France.","hypothesis":"The Eiffel Tower is in Paris.","label":"entailment","attack":"none"}
+{"id":"dosage-1","domain":"biomedical","premise":"The recommended dose is 10 mg daily.","hypothesis":"The recommended dose is 100 mg daily.","label":"contradiction","attack":"dosage_substitution"}
+{"id":"percentage-1","domain":"general","premise":"The response rate was 42% in the treatment group.","hypothesis":"The response rate was 24% in the treatment group.","label":"contradiction","attack":"percentage_substitution"}
+{"id":"direction-1","domain":"general","premise":"The measured temperature decreased after treatment.","hypothesis":"The measured temperature increased after treatment.","label":"contradiction","attack":"direction_reversal"}
+{"id":"entity-2","domain":"biomedical","premise":"TNF activates the inflammatory pathway in this assay.","hypothesis":"IL6 activates the inflammatory pathway in this assay.","label":"neutral","attack":"entity_substitution"}
+{"id":"unsupported-1","domain":"general","premise":"Insulin regulates blood glucose.","hypothesis":"Quasars emit xylophonic radiation.","label":"neutral","attack":"unsupported_claim"}
+{"id":"neutral-1","domain":"biomedical","premise":"Aspirin reduces pain and inflammation.","hypothesis":"Aspirin cures bacterial infections.","label":"neutral","attack":"unsupported_relation"}
+{"id":"entailed-2","domain":"biomedical","premise":"Metformin is commonly used for type 2 diabetes.","hypothesis":"Metformin is used for type 2 diabetes.","label":"entailment","attack":"none"}
 
