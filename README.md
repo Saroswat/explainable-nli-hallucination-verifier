@@ -3,6 +3,7 @@
 [![CI](https://github.com/Saroswat/explainable-nli-hallucination-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Saroswat/explainable-nli-hallucination-verifier/actions/workflows/ci.yml)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-43d6c5.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-0.3.0-78a9ff.svg)](https://github.com/Saroswat/explainable-nli-hallucination-verifier)
 
 VeriNLI checks an AI-generated answer against a supplied evidence corpus. It splits the
 answer into claims, retrieves the strongest matching passage, classifies the relationship,
@@ -10,6 +11,17 @@ and explains which claims are supported, contradicted, uncertain, or require hum
 
 Everything runs locally. The default verifier does not send answers or evidence to an
 external AI service.
+
+## VeriNLI 0.3: Trustworthy Verification
+
+- calibrated probability distributions that always sum to `1.0`;
+- absolute BM25 relevance scores instead of best-match-relative scores;
+- up to three independently labelled evidence citations per claim;
+- explicit warnings when credible sources support conflicting verdicts;
+- ordinary text, Markdown, JSONL, and CSV evidence input;
+- downloadable JSON and CSV reports;
+- adversarial coverage for negation, numbers, dosage, percentages, direction, time,
+  entities, unsupported claims, and source disagreement.
 
 ## Run the local app on Windows
 
@@ -61,15 +73,26 @@ much faster. Press `Ctrl+C` in the launcher window to stop the server.
 ## Using the workbench
 
 1. Enter the answer or statement you want to inspect.
-2. Add evidence as JSON Lines: one JSON object per line.
+2. Paste ordinary evidence text, paste JSONL, or choose a supported evidence file.
 3. Select **Verify claims**.
-4. Review the groundedness score and every claim-level verdict.
+4. Review the groundedness score, claim verdicts, and ranked citations.
+5. Export the complete report as JSON or CSV when needed.
 
-Each evidence line needs `passage_id` and `text`; `source` is optional:
+Plain text and Markdown are automatically split at blank lines. The file picker accepts
+`.txt`, `.md`, `.jsonl`, and `.csv` files. JSONL evidence needs `passage_id` and `text`;
+`source` is optional:
 
 ```json
 {"passage_id":"bio-001","text":"BRCA1 pathogenic variants increase breast cancer risk.","source":"example-guideline"}
 {"passage_id":"bio-002","text":"Metformin is commonly used for type 2 diabetes.","source":"example-guideline"}
+```
+
+CSV evidence uses the same column names:
+
+```csv
+passage_id,text,source
+bio-001,BRCA1 pathogenic variants increase breast cancer risk.,example-guideline
+bio-002,Metformin is commonly used for type 2 diabetes.,example-guideline
 ```
 
 The browser interface includes a safe sample so you can see the full workflow immediately.
@@ -87,9 +110,11 @@ Every claim verdict includes:
 
 - the atomic claim;
 - the selected evidence passage and source;
-- retrieval relevance and NLI confidence;
+- up to three ranked evidence citations and their sources;
+- absolute retrieval relevance and calibrated NLI confidence;
 - class probabilities;
 - a human-readable rationale;
+- a warning when cited sources disagree;
 - review status and reasons.
 
 The answer-level report includes groundedness, contradiction rate, label counts, and an
@@ -100,9 +125,9 @@ overall review flag.
 ```mermaid
 flowchart LR
     A["Generated answer"] --> B["Atomic claim splitter"]
-    B --> C["Lexical evidence retrieval"]
-    C --> D["Premise and hypothesis pair"]
-    D --> E["Explainable NLI classifier"]
+    B --> C["Absolute BM25 retrieval"]
+    C --> D["Top-three cited passages"]
+    D --> E["Explainable NLI per citation"]
     E --> F["Confidence and abstention policy"]
     F --> G["Groundedness report"]
     F --> H["Human review queue"]
@@ -119,6 +144,8 @@ While the local app is running:
 - interactive API documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 - health check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
 - verification endpoint: `POST http://127.0.0.1:8000/verify`
+- CSV report endpoint: `POST http://127.0.0.1:8000/verify.csv`
+- plain-text ingestion endpoint: `POST http://127.0.0.1:8000/ingest`
 
 Example request:
 
@@ -151,7 +178,17 @@ After `run.ps1` has prepared the environment:
     ".\examples\evidence.jsonl"
 ```
 
-The CLI prints a structured JSON report suitable for scripts and evaluation pipelines.
+The evidence file can be JSONL, Markdown, or plain text. Export CSV directly with:
+
+```powershell
+.\.venv\Scripts\verinli.exe verify `
+    "BRCA1 pathogenic variants increase breast cancer risk." `
+    ".\examples\evidence.jsonl" `
+    --format csv `
+    --output ".\verinli-report.csv"
+```
+
+Without `--output`, the CLI prints the report for scripts and evaluation pipelines.
 
 ## Development
 
@@ -179,10 +216,12 @@ pull request.
 |-- src/verinli/
 |   |-- api.py              # FastAPI and browser workbench
 |   |-- claims.py           # Atomic claim decomposition
+|   |-- ingestion.py        # Plain-text and JSONL evidence ingestion
 |   |-- retrieval.py        # Evidence retrieval
 |   |-- nli.py              # Heuristic and transformer backends
 |   |-- calibration.py      # Confidence and abstention policy
 |   |-- pipeline.py         # End-to-end orchestration
+|   |-- reporting.py        # JSON and CSV report rendering
 |   `-- web/index.html      # Dependency-free local interface
 `-- tests/                  # Unit and API tests
 ```
@@ -223,8 +262,8 @@ python --version
 ## Limitations and safety
 
 VeriNLI is a research and portfolio project, not a fact oracle or clinical decision system.
-The lexical retriever and heuristic NLI model are interpretable baselines and can miss
-paraphrases, implicit facts, entity substitutions, and complex reasoning. Treat an
+The BM25 retriever and heuristic NLI model are interpretable baselines and can miss
+paraphrases, implicit facts, non-acronym entity substitutions, and complex reasoning. Treat an
 `entailment` verdict as model output, not a guarantee of truth.
 
 Biomedical outputs must be reviewed by qualified humans. An `abstain` result means the
@@ -232,12 +271,11 @@ system lacks confidence; it does not mean a claim is safe.
 
 ## Roadmap
 
-- hybrid BM25 and dense retrieval with reranking;
+- optional dense retrieval and cross-encoder reranking;
 - calibrated transformer and biomedical NLI backends;
 - dataset adapters and reproducible evaluation commands;
 - biomedical entity linking and claim normalization;
 - persisted reviewer decisions and disagreement metrics;
-- adversarial generation for negation, numbers, entities, and time;
 - observability and a dedicated review dashboard.
 
 ## License

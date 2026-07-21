@@ -24,10 +24,18 @@ class NLIResult(BaseModel):
     rationale: str
 
 
+class Citation(BaseModel):
+    citation_id: str
+    evidence: Evidence
+    nli: NLIResult
+
+
 class ClaimVerdict(BaseModel):
     claim: str
     evidence: Evidence | None
     nli: NLIResult
+    citations: list[Citation] = Field(default_factory=list)
+    evidence_conflict: bool = False
     requires_human_review: bool
     review_reasons: list[str] = Field(default_factory=list)
 

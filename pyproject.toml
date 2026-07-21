@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "verinli"
-version = "0.2.0"
+version = "0.3.0"
 description = "Explainable NLI pipeline for evidence-grounded hallucination verification"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -44,3 +44,39 @@ def test_pipeline_routes_contradiction_to_review() -> None:
     assert report.review_required
     assert report.verdicts[0].review_reasons == ["contradiction"]
 
+
+def test_pipeline_returns_three_citations() -> None:
+    passages = [
+        Passage(passage_id="a", text="Insulin regulates blood glucose.", source="source-a"),
+        Passage(passage_id="b", text="Insulin helps regulate glucose levels.", source="source-b"),
+        Passage(passage_id="c", text="Blood glucose is regulated by insulin.", source="source-c"),
+        Passage(passage_id="d", text="Paris is the capital of France.", source="source-d"),
+    ]
+    report = VerificationPipeline(passages).verify("Insulin regulates blood glucose.")
+    verdict = report.verdicts[0]
+    assert len(verdict.citations) == 3
+    assert [item.citation_id for item in verdict.citations] == ["[1]", "[2]", "[3]"]
+
+
+def test_pipeline_flags_conflicting_sources() -> None:
+    passages = [
+        Passage(passage_id="support", text="Aspirin increases bleeding risk."),
+        Passage(passage_id="conflict", text="Aspirin does not increase bleeding risk."),
+    ]
+    report = VerificationPipeline(passages).verify("Aspirin increases bleeding risk.")
+    verdict = report.verdicts[0]
+    assert verdict.evidence_conflict
+    assert verdict.nli.label is NLILabel.CONTRADICTION
+    assert "conflicting_evidence" in verdict.review_reasons
+
+
+def test_pipeline_abstains_without_relevant_evidence() -> None:
+    passages = [Passage(passage_id="geo", text="Paris is the capital of France.")]
+    report = VerificationPipeline(passages).verify("Quasars emit xylophonic radiation.")
+    verdict = report.verdicts[0]
+    assert verdict.nli.label is NLILabel.ABSTAIN
+    assert verdict.nli.confidence == 1.0
+    assert verdict.evidence is None
+    assert verdict.citations == []
+    assert "no_relevant_evidence" in verdict.review_reasons
+
