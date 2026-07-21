@@ -44,8 +44,24 @@ cd explainable-nli-hallucination-verifier
 
 ### Install and launch from any folder
 
-For a per-user installation in `%LOCALAPPDATA%\VeriNLI`, download the installer, inspect
-it, and run it:
+To install and launch the current VeriNLI 0.3 release branch from any folder, paste this
+complete block into PowerShell:
+
+```powershell
+$installer = Join-Path $env:TEMP "install-verinli.ps1"
+
+Invoke-WebRequest `
+  -Uri "https://raw.githubusercontent.com/Saroswat/explainable-nli-hallucination-verifier/agent/local-verinli-workbench/install.ps1" `
+  -OutFile $installer
+
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File $installer `
+  -Branch agent/local-verinli-workbench
+```
+
+This creates a per-user installation in `%LOCALAPPDATA%\VeriNLI`. After this release is
+merged into `main`, use the permanent installer command below. It downloads the installer,
+lets you inspect it, and then runs it:
 
 ```powershell
 $installer = Join-Path ([System.IO.Path]::GetTempPath()) "install-verinli.ps1"
