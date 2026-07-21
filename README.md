@@ -1,132 +1,245 @@
-# VeriNLI â€” Explainable NLI Hallucination Verifier
+# VeriNLI - Explainable Hallucination Verification
 
-An evidence-grounded Python system that decomposes generated answers into claims,
-retrieves supporting passages, classifies each claim as **entailment**,
-**contradiction**, **neutral**, or **abstain**, and routes risky claims to human review.
+[![CI](https://github.com/Saroswat/explainable-nli-hallucination-verifier/actions/workflows/ci.yml/badge.svg)](https://github.com/Saroswat/explainable-nli-hallucination-verifier/actions/workflows/ci.yml)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-43d6c5.svg)](LICENSE)
 
-The project targets two evaluation settings:
+VeriNLI checks an AI-generated answer against a supplied evidence corpus. It splits the
+answer into claims, retrieves the strongest matching passage, classifies the relationship,
+and explains which claims are supported, contradicted, uncertain, or require human review.
 
-- general-domain factual verification;
-- biomedical claim verification, building on biomedical NER and safe humanâ€“AI review.
+Everything runs locally. The default verifier does not send answers or evidence to an
+external AI service.
 
-## Why this project
+## Run the local app on Windows
 
-Hallucination is not one binary property. A generated answer may contain supported,
-unsupported, and contradictory claims simultaneously. VeriNLI produces an auditable
-claim-level report instead of a single opaque score.
+### Prerequisites
 
-## Pipeline
+- [Git](https://git-scm.com/download/win)
+- [Python 3.11 or newer](https://www.python.org/downloads/windows/)
+
+When installing Python, enable **Add python.exe to PATH**.
+
+### One-command launch
+
+Open PowerShell and run:
+
+```powershell
+git clone https://github.com/Saroswat/explainable-nli-hallucination-verifier.git
+cd explainable-nli-hallucination-verifier
+.\run.ps1
+```
+
+If you are using Command Prompt instead, run `run.cmd` after entering the repository.
+You can also double-click `run.cmd` in File Explorer.
+
+The launcher automatically:
+
+1. finds a compatible Python installation;
+2. creates an isolated `.venv` environment;
+3. installs the API and web-app dependencies;
+4. starts VeriNLI only on `127.0.0.1`;
+5. checks that the service is healthy;
+6. opens [http://127.0.0.1:8000](http://127.0.0.1:8000) in your browser.
+
+The first run downloads Python packages. Later launches reuse the environment and start
+much faster. Press `Ctrl+C` in the launcher window to stop the server.
+
+### Launcher options
+
+```powershell
+# Use another port
+.\run.ps1 -Port 8080
+
+# Start without opening a browser
+.\run.ps1 -NoBrowser
+
+# Reinstall dependencies
+.\run.ps1 -Reinstall
+```
+
+## Using the workbench
+
+1. Enter the answer or statement you want to inspect.
+2. Add evidence as JSON Lines: one JSON object per line.
+3. Select **Verify claims**.
+4. Review the groundedness score and every claim-level verdict.
+
+Each evidence line needs `passage_id` and `text`; `source` is optional:
+
+```json
+{"passage_id":"bio-001","text":"BRCA1 pathogenic variants increase breast cancer risk.","source":"example-guideline"}
+{"passage_id":"bio-002","text":"Metformin is commonly used for type 2 diabetes.","source":"example-guideline"}
+```
+
+The browser interface includes a safe sample so you can see the full workflow immediately.
+
+## What the report means
+
+| Verdict | Meaning | Human review |
+| --- | --- | --- |
+| `entailment` | The selected evidence supports the claim. | Usually not required |
+| `contradiction` | Evidence conflicts through negation or numerical values. | Required |
+| `neutral` | Evidence neither proves nor directly contradicts the claim. | Not automatically required |
+| `abstain` | Retrieval relevance or NLI confidence is below the safety threshold. | Required |
+
+Every claim verdict includes:
+
+- the atomic claim;
+- the selected evidence passage and source;
+- retrieval relevance and NLI confidence;
+- class probabilities;
+- a human-readable rationale;
+- review status and reasons.
+
+The answer-level report includes groundedness, contradiction rate, label counts, and an
+overall review flag.
+
+## How it works
 
 ```mermaid
 flowchart LR
     A["Generated answer"] --> B["Atomic claim splitter"]
-    B --> C["Evidence retrieval"]
-    C --> D["Premiseâ€“hypothesis pairs"]
-    D --> E["NLI classifier"]
-    E --> F["Confidence + abstention policy"]
+    B --> C["Lexical evidence retrieval"]
+    C --> D["Premise and hypothesis pair"]
+    D --> E["Explainable NLI classifier"]
+    E --> F["Confidence and abstention policy"]
     F --> G["Groundedness report"]
     F --> H["Human review queue"]
 ```
 
-## Current MVP
+The default NLI engine is a transparent, deterministic baseline. It is deliberately easy to
+audit and works offline. The package also contains an optional Hugging Face transformer
+backend for research experiments.
 
-- deterministic atomic-claim decomposition;
-- dependency-free lexical retrieval baseline;
-- explainable offline NLI baseline;
-- optional Hugging Face cross-encoder backend;
-- dual confidence gates for retrieval and NLI;
-- structured Pydantic reports;
-- contradiction and abstention review routing;
-- CLI and optional FastAPI service;
-- adversarial fixtures for negation, numbers, time, and entity substitution;
-- typed, linted, tested Python package with GitHub Actions CI.
+## API usage
 
-The heuristic classifier is intentionally a transparent baseline, not the final
-research model. It keeps tests offline and makes failure modes visible.
+While the local app is running:
 
-## Quick start
+- interactive API documentation: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+- health check: [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)
+- verification endpoint: `POST http://127.0.0.1:8000/verify`
 
-```bash
+Example request:
+
+```powershell
+$body = @{
+    answer = "Insulin regulates blood glucose."
+    passages = @(
+        @{
+            passage_id = "bio-1"
+            text = "Insulin regulates blood glucose."
+            source = "demo"
+        }
+    )
+} | ConvertTo-Json -Depth 4
+
+Invoke-RestMethod `
+    -Uri "http://127.0.0.1:8000/verify" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+## Command-line usage
+
+After `run.ps1` has prepared the environment:
+
+```powershell
+.\.venv\Scripts\verinli.exe verify `
+    "BRCA1 pathogenic variants do not increase breast cancer risk." `
+    ".\examples\evidence.jsonl"
+```
+
+The CLI prints a structured JSON report suitable for scripts and evaluation pipelines.
+
+## Development
+
+```powershell
 python -m venv .venv
-# Windows: .venv\Scripts\activate
-# Linux/macOS: source .venv/bin/activate
+.\.venv\Scripts\Activate.ps1
 python -m pip install -e ".[dev]"
+
+ruff check .
+mypy
 pytest
-
-verinli verify \
-  "BRCA1 pathogenic variants do not increase breast cancer risk." \
-  examples/evidence.jsonl
 ```
 
-API:
+CI runs linting, strict type checking, unit tests, API tests, and coverage on every push and
+pull request.
 
-```bash
-python -m pip install -e ".[api]"
-uvicorn verinli.api:app --reload
+### Project structure
+
+```text
+.
+|-- run.ps1                 # One-command Windows launcher
+|-- run.cmd                 # Command Prompt and double-click wrapper
+|-- examples/               # Sample evidence corpus
+|-- evaluation/             # Adversarial evaluation fixtures
+|-- src/verinli/
+|   |-- api.py              # FastAPI and browser workbench
+|   |-- claims.py           # Atomic claim decomposition
+|   |-- retrieval.py        # Evidence retrieval
+|   |-- nli.py              # Heuristic and transformer backends
+|   |-- calibration.py      # Confidence and abstention policy
+|   |-- pipeline.py         # End-to-end orchestration
+|   `-- web/index.html      # Dependency-free local interface
+`-- tests/                  # Unit and API tests
 ```
 
-Open `http://127.0.0.1:8000/docs`.
+## Troubleshooting
 
-## Report contract
+### PowerShell says scripts are disabled
 
-Every claim verdict records:
+Use the included Command Prompt wrapper:
 
-- the atomic claim;
-- selected evidence and source;
-- retrieval score;
-- NLI label and confidence;
-- class probabilities;
-- a human-readable rationale;
-- human-review status and reasons.
+```cmd
+run.cmd
+```
 
-The answer-level report includes groundedness, contradiction rate, label counts,
-and whether any claim requires review.
+It changes the execution policy only for that launcher process and does not modify your
+machine-wide PowerShell policy.
 
-## Evaluation plan
+### Python is not found
 
-### General domain
+Install Python 3.11+ and select **Add python.exe to PATH**, then open a new terminal. Check:
 
-- MultiNLI and ANLI for inference;
-- FEVER-style evidence verification;
-- adversarial negation, number, entity, and temporal transformations.
+```powershell
+python --version
+```
 
-### Biomedical domain
+### Port 8000 is already in use
 
-- MedNLI for clinical inference;
-- manually reviewed claims derived from public biomedical abstracts;
-- entity-aware perturbations using disease, gene, drug, dose, and outcome swaps.
+```powershell
+.\run.ps1 -Port 8080
+```
 
-### Metrics
+### Dependencies changed or the environment is stale
 
-- macro F1 and per-label precision/recall;
-- contradiction recall;
-- expected calibration error and Brier score;
-- riskâ€“coverage curve for abstention;
-- retrieval Recall@k and MRR;
-- evidence-conditioned groundedness;
-- human-review workload and unsafe false-negative rate.
+```powershell
+.\run.ps1 -Reinstall
+```
 
-Dataset downloads are deliberately not committed. Their original licences and
-access conditions must be followed.
+## Limitations and safety
 
-## Research roadmap
+VeriNLI is a research and portfolio project, not a fact oracle or clinical decision system.
+The lexical retriever and heuristic NLI model are interpretable baselines and can miss
+paraphrases, implicit facts, entity substitutions, and complex reasoning. Treat an
+`entailment` verdict as model output, not a guarantee of truth.
 
-1. Add dataset adapters and a reproducible evaluation CLI.
-2. Fit temperature scaling on a held-out calibration split.
-3. Replace lexical retrieval with hybrid BM25 + dense retrieval and reranking.
-4. Add biomedical entity linking and claim normalization.
-5. Benchmark DeBERTa, ModernBERT, and instruction-tuned LLM judges.
-6. Add adversarial dataset generation with semantic-validity checks.
-7. Persist reviewer decisions and measure modelâ€“reviewer disagreement.
-8. Add OpenTelemetry traces and a review dashboard.
+Biomedical outputs must be reviewed by qualified humans. An `abstain` result means the
+system lacks confidence; it does not mean a claim is safe.
 
-## Safety
+## Roadmap
 
-This software is a research and portfolio project. It is not a clinical decision
-system. Biomedical outputs must be reviewed by qualified humans, and abstention
-must not be interpreted as evidence that a claim is safe.
+- hybrid BM25 and dense retrieval with reranking;
+- calibrated transformer and biomedical NLI backends;
+- dataset adapters and reproducible evaluation commands;
+- biomedical entity linking and claim normalization;
+- persisted reviewer decisions and disagreement metrics;
+- adversarial generation for negation, numbers, entities, and time;
+- observability and a dedicated review dashboard.
 
 ## License
 
-MIT. Third-party models and datasets retain their own licences and terms.
-
+[MIT](LICENSE). Third-party models and datasets retain their own licences and terms.

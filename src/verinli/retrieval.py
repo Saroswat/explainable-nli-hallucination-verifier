@@ -21,6 +21,8 @@ class LexicalRetriever:
     """Dependency-free BM25-like baseline, intentionally replaceable."""
 
     def __init__(self, passages: list[Passage]) -> None:
+        if not passages:
+            raise ValueError("At least one evidence passage is required.")
         self.passages = passages
         self._docs = [Counter(_tokens(p.text)) for p in passages]
         self._idf = self._build_idf()

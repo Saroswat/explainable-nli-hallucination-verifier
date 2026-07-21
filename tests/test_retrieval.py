@@ -1,3 +1,5 @@
+import pytest
+
 from verinli.retrieval import LexicalRetriever, Passage
 
 
@@ -9,4 +11,9 @@ def test_retriever_returns_relevant_passage() -> None:
         ]
     )
     assert retriever.retrieve("What regulates blood glucose?", top_k=1)[0].passage_id == "b"
+
+
+def test_retriever_requires_evidence() -> None:
+    with pytest.raises(ValueError, match="At least one evidence passage"):
+        LexicalRetriever([])
 
