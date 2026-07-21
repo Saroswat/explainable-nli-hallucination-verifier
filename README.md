@@ -42,6 +42,38 @@ cd explainable-nli-hallucination-verifier
 .\run.ps1
 ```
 
+### Install and launch from any folder
+
+For a per-user installation in `%LOCALAPPDATA%\VeriNLI`, download the installer, inspect
+it, and run it:
+
+```powershell
+$installer = Join-Path ([System.IO.Path]::GetTempPath()) "install-verinli.ps1"
+
+Invoke-WebRequest `
+    -Uri "https://raw.githubusercontent.com/Saroswat/explainable-nli-hallucination-verifier/main/install.ps1" `
+    -OutFile $installer
+
+Get-Content -LiteralPath $installer
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer
+```
+
+The installer never changes the machine-wide PowerShell execution policy. It clones or
+safely fast-forwards the expected GitHub repository, refuses to overwrite local changes,
+and delegates dependency isolation to `run.ps1`.
+
+Optional installer arguments:
+
+```powershell
+# Choose another installation folder and port
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer `
+    -InstallDirectory "D:\Apps\VeriNLI" `
+    -Port 8080
+
+# Download or update without starting the server
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer -NoLaunch
+```
+
 If you are using Command Prompt instead, run `run.cmd` after entering the repository.
 You can also double-click `run.cmd` in File Explorer.
 
@@ -211,6 +243,7 @@ pull request.
 .
 |-- run.ps1                 # One-command Windows launcher
 |-- run.cmd                 # Command Prompt and double-click wrapper
+|-- install.ps1             # Safe clone/update bootstrap for any folder
 |-- examples/               # Sample evidence corpus
 |-- evaluation/             # Adversarial evaluation fixtures
 |-- src/verinli/
