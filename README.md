@@ -1,4 +1,4 @@
-# VeriNLI â€” Explainable NLI Hallucination Verifier
+# VeriNLI - Explainable NLI Hallucination Verifier
 
 An evidence-grounded Python system that decomposes generated answers into claims,
 retrieves supporting passages, classifies each claim as **entailment**,
