@@ -21,7 +21,7 @@ claim-level report instead of a single opaque score.
 flowchart LR
     A["Generated answer"] --> B["Atomic claim splitter"]
     B --> C["Evidence retrieval"]
-    C --> D["Premiseâ€“hypothesis pairs"]
+    C --> D["Premise - hypothesis pairs"]
     D --> E["NLI classifier"]
     E --> F["Confidence + abstention policy"]
     F --> G["Groundedness report"]
